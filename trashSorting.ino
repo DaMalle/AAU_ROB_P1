@@ -68,7 +68,7 @@ void followLine() {
   motors.setSpeeds(0, 0);
 }
 
-void scanCan() {
+void scanTrash() {
   proxSensors.initFrontSensor();
   proxSensors.setBrightnessLevels(brightnessLevels, 20);
   while(true){
@@ -92,7 +92,7 @@ void scanCan() {
 }
 }
 
-void landOnLine() {
+void moveOntoLine() {
   // Move a bit past line
   motors.setSpeeds(100, 100);
   delay(600);
@@ -137,9 +137,9 @@ void setup(){
   while(buzzer.isPlaying());
 
   findLine();
-  landOnLine();
+  moveOntoLine();
   followLine();
-  scanCan();
+  scanTrash();
 }
 
 void loop(){ 
