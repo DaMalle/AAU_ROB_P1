@@ -1,7 +1,7 @@
 
 #include <Wire.h>
 #include <Zumo32U4.h>
-
+//For this code to work, the library proximiditysensors must be edited, such the prepareRead() func does not turn emittersOff.
 Zumo32U4Buzzer buzzer;
 Zumo32U4LineSensors lineSensors;
 Zumo32U4Motors motors;
@@ -15,6 +15,7 @@ int p = 2;
 int D = 1;
 int lastError = 0;
 int errorRate = 0;
+int brightnessLevels[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
 
 void calibrateSensors(){
   display.clear();
@@ -58,7 +59,7 @@ void followLine(){
     //1 = Cleft
     //3 = CRight
     //2 = middle
-  if(lineSensorValues[1] < 300 && lineSensorValues[3] < 300 && lineSensorValues[2] > 200 ){
+  if(lineSensorValues[0] < 300 && lineSensorValues[4] < 300 && lineSensorValues[2] > 200){
    
     motors.setSpeeds(0, 0);
     break;
@@ -97,56 +98,39 @@ void followLine(){
 
 void scanCan(){
   dis.initFrontSensor();
+  dis.setBrightnessLevels(brightnessLevels,20);
   while(true){
   dis.read();
+  delay(100);
   display.clear();
   int cLeftSensor = dis.countsFrontWithLeftLeds();
   int cRightSensor = dis.countsFrontWithRightLeds();
   lineSensors.emittersOn();
   display.println(cLeftSensor);
-  if(cLeftSensor == 6 || cRightSensor == 6){
+  display.println(cRightSensor);
+  if(cLeftSensor == 5 || cRightSensor == 5){
     display.clear();
     display.println("Close");
-    break;
-  }
-  else if (cLeftSensor == 5 || cRightSensor == 5){
-    display.clear();
-    display.println("Far");
-    break;
-  }
-}}
+    }
+  //else if (cLeftSensor == 5 || cRightSensor == 5){
+   // display.clear();
+    //display.println("Far");
+    
+  //}
+}
+}
 
 void landOnLine(){// denne funktion bliver kaldt efter at robotten har fundet linjen.
   //Sensor 0 = Left
   //Sensor 4 = Right
   while (true){
-  lineSensors.readCalibrated(lineSensorValues);
   //                                the robot will turn Anticlockwise until the right sensor hits the line.
-    motors.setSpeeds(0,100);
-    //                              printing rightsensor measurements.
-    display.gotoXY(0,1);
-    display.println(lineSensorValues[4]);
-    //                              After the rightsensor see's the line. This section checks if both the right and the left sensor is on the line. then the robot will turn around and land on the line.
-    if(lineSensorValues[4]<300){
-      motors.setSpeeds(0,0);
-      if(lineSensorValues[4]<300 && lineSensorValues[0]<300){
-      delay(10);
-      motors.setSpeeds(100,100);
-      delay(650);
-      motors.setSpeeds(0,0);
-      break;
-      }
-      else if(lineSensorValues[4]>300 && lineSensorValues[0] < 300 ){// if both sensors are not on the line this section will try to. 
-        motors.setSpeeds(0,-180);
-        }
-      else if(lineSensorValues[0]>300 && lineSensorValues[4] < 300){
-        motors.setSpeeds(-180,0);
-      }
-      else{
-        motors.setSpeeds(-100, -100);
-      }
-      }
-}}
+  motors.setSpeeds(100, 100);
+  delay(600);
+  break;
+  }
+      
+}
 
 void turn(){
   while(true){
