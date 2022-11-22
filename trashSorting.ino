@@ -1,7 +1,7 @@
 #include <Wire.h>
 #include <Zumo32U4.h>
 
-// For this code to work, the library proximiditysensors must be edited, 
+// For this code to work, the library proximitysensors must be edited, 
 // such the prepareRead() func does not turn emittersOff.
 
 Zumo32U4Buzzer buzzer;
@@ -13,13 +13,14 @@ Zumo32U4ProximitySensors proxSensors;
 
 unsigned int lineSensorValues[5];
 int brightnessLevels[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
+char distance;
 
 void calibrateSensors() {
   delay(1000);
   // Rotates in place to sweep sensors over line
   for (uint16_t i = 0; i < 120; i++) {
-    if (i > 30 && i <= 90) motors.setSpeeds(-100, 100);
-    else motors.setSpeeds(100, -100);
+    if (i > 30 && i <= 90) motors.setSpeeds(-150, 150);
+    else motors.setSpeeds(150, -150);
     lineSensors.calibrate();
   }
   motors.setSpeeds(0, 0);
@@ -27,7 +28,6 @@ void calibrateSensors() {
 
 void showReadings() {
   /* Prints live measurements until button A is pressed. */
-
   display.clear();
   while(!buttonA.getSingleDebouncedPress()) {
     lineSensors.readCalibrated(lineSensorValues);
@@ -56,7 +56,7 @@ void followLine() {
   float kp = 0.2, kd = 1;
   int sensorInput, error, lastError = 0, errorRate, regulatedSpeed;
   
-  while (lineSensorValues[0] < 300 && lineSensorValues[4] < 300 && lineSensorValues[2] > 200) {
+  while(!(lineSensorValues[0] < 300 && lineSensorValues[4] < 300 && lineSensorValues[2] > 200)) {
     sensorInput = lineSensors.readLine(lineSensorValues);
     error = sensorInput - setpoint;
     errorRate = error - lastError;
@@ -68,28 +68,31 @@ void followLine() {
   motors.setSpeeds(0, 0);
 }
 
-void scanTrash() {
+char scanTrash() {
   proxSensors.initFrontSensor();
   proxSensors.setBrightnessLevels(brightnessLevels, 20);
   while(true){
   proxSensors.read();
-  delay(100);
   display.clear();
   int cLeftSensor = proxSensors.countsFrontWithLeftLeds();
   int cRightSensor = proxSensors.countsFrontWithRightLeds();
   lineSensors.emittersOn();
   display.println(cLeftSensor);
   display.println(cRightSensor);
-  if(cLeftSensor == 5 || cRightSensor == 5){
-    display.clear();
+  if(cLeftSensor == cRightSensor && cRightSensor == 20){
+    display.gotoXY(0, 1);
     display.println("Close");
-    }
-  //else if (cLeftSensor == 5 || cRightSensor == 5){
-   // display.clear();
-    //display.println("Far");
+    lineSensors.emittersOff();
+    return 'c';
     
-  //}
-}
+    }
+  else if ((cRightSensor == cLeftSensor && cRightSensor > 17 && cRightSensor < 20)){
+    display.gotoXY(0, 1);
+    display.println("Far");
+    lineSensors.emittersOff();
+    return 'f';
+    }
+  }
 }
 
 void moveOntoLine() {
@@ -106,7 +109,7 @@ void moveOntoLine() {
 
 void findLine() {
   motors.setSpeeds(100, 100);
-  while (!(lineSensorValues[0] < 400 || lineSensorValues[4] < 400 || lineSensorValues[2] < 400)) {
+  while (!(lineSensorValues[0] < 200 || lineSensorValues[4] < 200 || lineSensorValues[2] < 200)) {
     lineSensors.readCalibrated(lineSensorValues);
   }
   motors.setSpeeds(0, 0);
@@ -139,9 +142,20 @@ void setup(){
   findLine();
   moveOntoLine();
   followLine();
-  scanTrash();
+  distance = scanTrash();
 }
 
 void loop(){ 
+  if(distance == 'f'){ // if Can is far then it will kill the Can. 
+    motors.setSpeeds(100,100);
+    delay(600);
+    lineSensors.readCalibrated(lineSensorValues);
+    findLine();
+    distance='a';
+  }
+  else if(distance == 'c'){
+    motors.setSpeeds(100, 100);
+  }
+  showReadings();
 
 }
