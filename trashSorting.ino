@@ -69,28 +69,26 @@ void followLine() {
 }
 
 char scanTrash() {
-  proxSensors.initFrontSensor();
-  proxSensors.setBrightnessLevels(brightnessLevels, 20);
   while(true){
-  proxSensors.read();
-  display.clear();
-  int cLeftSensor = proxSensors.countsFrontWithLeftLeds();
-  int cRightSensor = proxSensors.countsFrontWithRightLeds();
-  lineSensors.emittersOn();
-  display.println(cLeftSensor);
-  display.println(cRightSensor);
-  if(cLeftSensor == cRightSensor && cRightSensor == 20){
-    display.gotoXY(0, 1);
-    display.println("Close");
-    lineSensors.emittersOff();
-    return 'c';
-    
+    proxSensors.read();
+    display.clear();
+    int cLeftSensor = proxSensors.countsFrontWithLeftLeds();
+    int cRightSensor = proxSensors.countsFrontWithRightLeds();
+    lineSensors.emittersOn();
+    display.println(cLeftSensor);
+    display.println(cRightSensor);
+    if(cLeftSensor == cRightSensor && cRightSensor == 20){
+      display.gotoXY(0, 1);
+      display.println("Close");
+      delay(600);
+      lineSensors.emittersOff();
+      return 'c';
     }
-  else if ((cRightSensor == cLeftSensor && cRightSensor > 17 && cRightSensor < 20)){
-    display.gotoXY(0, 1);
-    display.println("Far");
-    lineSensors.emittersOff();
-    return 'f';
+    else if ((cRightSensor == cLeftSensor && cRightSensor > 17 && cRightSensor < 20)) {
+      display.gotoXY(0, 1);
+      display.println("Far");
+      lineSensors.emittersOff();
+      return 'f';
     }
   }
 }
@@ -108,14 +106,30 @@ void moveOntoLine() {
 }
 
 void findLine() {
+  
   motors.setSpeeds(100, 100);
+  
   while (!(lineSensorValues[0] < 200 || lineSensorValues[4] < 200 || lineSensorValues[2] < 200)) {
     lineSensors.readCalibrated(lineSensorValues);
+    
   }
   motors.setSpeeds(0, 0);
 }
 
+void farCan(){
+    motors.setSpeeds(100,100);
+    delay(600);
+    lineSensors.readCalibrated(lineSensorValues);
+    findLine();
+    distance='a';
+    motors.setSpeeds(-100, -100);
+    delay(2900);
+    followLine();
+}
+
 void setup(){
+  proxSensors.initFrontSensor();
+  proxSensors.setBrightnessLevels(brightnessLevels, 20);
   lineSensors.initFiveSensors();
   display.clear();
 
@@ -142,20 +156,30 @@ void setup(){
   findLine();
   moveOntoLine();
   followLine();
-  distance = scanTrash();
 }
 
+
+
 void loop(){ 
+  distance = scanTrash();
   if(distance == 'f'){ // if Can is far then it will kill the Can. 
-    motors.setSpeeds(100,100);
-    delay(600);
-    lineSensors.readCalibrated(lineSensorValues);
-    findLine();
-    distance='a';
+    farCan();
   }
   else if(distance == 'c'){
-    motors.setSpeeds(100, 100);
+    motors.setSpeeds(170, -100);
+    delay(200);
+    motors.setSpeeds(120, 100);
+    delay(900);
+    motors.setSpeeds(-100,100);
+    delay(1300);
+    
+    lineSensors.readCalibrated(lineSensorValues);
+    findLine();
+    motors.setSpeeds(-100, -100);
+    delay(1000);
+    
+    distance='a';
   }
-  showReadings();
+  
 
 }
