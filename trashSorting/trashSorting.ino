@@ -19,24 +19,40 @@ int brightnessLevels[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
 char TrashDistance;
 int currentAngle = 0;
 
-void rotateToTarget(int target) {  // span {-180 -- 0 -- 180}
-  int currentAngle = getAngle(); 
+void setup() {
+  proxSensors.initFrontSensor();
+  proxSensors.setBrightnessLevels(brightnessLevels, 20);
+  lineSensors.initFiveSensors();
+  display.clear();
+   
+  // Play a little welcome song
+  buzzer.play(">g32>>c32");
 
-  while(-target != currentAngle && target != currentAngle)) {
-    turnSensorUpdate();
-    currentAngle = getAngle();
+  // Wait for button A to be pressed and released.
+  display.print(F("Press A"));
+  display.gotoXY(0, 1);
+  display.print(F("to calib"));
+  buttonA.waitForButton();
 
-    if(target != currentAngle && target < (currentAngle)) motors.setSpeeds(100, -100);
-    else if(target != currentAngle && target > (currentAngle)) motors.setSpeeds(-100, 100);
+  calibrateSensors();
+  buttonA.waitForButton();
 
-    display.clear();
-    display.print(currentAngle);
-  }
-  motors.setSpeeds(0,0);
+  // Play music and wait for it to finish before we start driving.
+  display.clear();
+  display.print(F("Go!"));
+  buzzer.play("L16 cdegreg4");
+  while(buzzer.isPlaying());
+
+  findLine();
+  moveOntoLine(clockwise=true);
+  followLine();
+  turnSensorSetup(); 
 }
 
-int getAngle() {
-  return (((int32_t)turnAngle >> 16) * 360) >> 16;
+void loop() {
+  turnSensorReset(); 
+  TrashDistance = scanTrash();
+  sortTrash();
 }
 
 void calibrateSensors() {
@@ -50,16 +66,30 @@ void calibrateSensors() {
   motors.setSpeeds(0, 0);
 }
 
-void showLineSensorValues() {
-  /* Reads linesensor values. Values span from 0-1000. Higher value = more color contrast. */
+void findLine() {
+  motors.setSpeeds(300, 300);
   lineSensors.readCalibrated(lineSensorValues);
-  display.clear();
-  display.gotoXY(0, 0);
-  display.println(lineSensorValues[1]);
-  display.gotoXY(4,0);
-  display.println(lineSensorValues[3]);
-  display.gotoXY(0,1);
-  display.println(lineSensorValues[2]);
+  while(!detectLine(100)) lineSensors.readCalibrated(lineSensorValues);
+  motors.setSpeeds(0, 0);
+}
+
+bool detectLine(const int lineValue) {
+  return lineSensorValues[0] < lineValue || \
+         lineSensorValues[4] < lineValue || \
+         lineSensorValues[2] < lineValue;
+}
+
+void moveOntoLine(const bool clockwise) {
+  const int baseSpeed = 100;
+  // Move a bit past line
+  motors.setSpeeds(baseSpeed, baseSpeed);
+  delay(550);
+
+  // Turn until middle sensor hits the line.
+  if (clockwise) motors.setSpeeds(baseSpeed, -baseSpeed);
+  else motors.setSpeeds(-baseSpeed, baseSpeed);
+  while(lineSensorValues[2] >= 150) lineSensors.readCalibrated(lineSensorValues);
+  motors.setSpeeds(0, 0); 
 }
 
 void followLine() {
@@ -100,32 +130,6 @@ char scanTrash() {
   }
 }
 
-void moveOntoLine(const bool clockwise) {
-  const int baseSpeed = 100;
-  // Move a bit past line
-  motors.setSpeeds(baseSpeed, baseSpeed);
-  delay(550);
-
-  // Turn until middle sensor hits the line.
-  if (clockwise) motors.setSpeeds(baseSpeed, -baseSpeed);
-  else motors.setSpeeds(-baseSpeed, baseSpeed);
-  while(lineSensorValues[2] >= 150) lineSensors.readCalibrated(lineSensorValues);
-  motors.setSpeeds(0, 0); 
-}
-
-void findLine() {
-  motors.setSpeeds(300, 300);
-  lineSensors.readCalibrated(lineSensorValues);
-  while(!detectLine(100)) lineSensors.readCalibrated(lineSensorValues);
-  motors.setSpeeds(0, 0);
-}
-
-bool detectLine(const int lineValue) {
-  return lineSensorValues[0] < lineValue || \
-         lineSensorValues[4] < lineValue || \
-         lineSensorValues[2] < lineValue;
-}
-
 void sortTrash() {
   switch(TrashDistance) {
     case 'f': sortTrashFar(); break;
@@ -135,22 +139,22 @@ void sortTrash() {
 }
 
 void sortTrashFar(){
-
+  const int baseSpeed = 300, baseDuration = 200;
   // move away from start line
-  motors.setSpeeds(300, 300);
-  delay(200);
+  motors.setSpeeds(baseSpeed, baseSpeed);
+  delay(baseDuration);
 
   // move forward until a new line is found
   findLine();
   buzzer.play("L16 cdegreg4");
-  TrashDistance='a';
+  TrashDistance = 'n';
 
   // return to start line
-  motors.setSpeeds(-300, -300);
-  delay(300);
+  motors.setSpeeds(-baseSpeed, -baseSpeed);
+  delay(baseDuration);
   lineSensors.readCalibrated(lineSensorValues);
   while(!detectLine(100)) lineSensors.readCalibrated(lineSensorValues);
-  delay(200);
+  delay(baseDuration);
   followLine();
 }
 
@@ -180,41 +184,34 @@ void sortTrashClose() {
   findLine();
   moveOntoLine(clockwise=false);
   followLine();
-  TrashDistance = 'a';
+  TrashDistance = 'n';
 }
 
-void setup() {
-  proxSensors.initFrontSensor();
-  proxSensors.setBrightnessLevels(brightnessLevels, 20);
-  lineSensors.initFiveSensors();
-  display.clear();
-   
-  // Play a little welcome song
-  buzzer.play(">g32>>c32");
+void rotateToTarget(int target) {  // span {-180 -- 0 -- 180}
+  int currentAngle = getAngle(); 
 
-  // Wait for button A to be pressed and released.
-  display.print(F("Press A"));
-  display.gotoXY(0, 1);
-  display.print(F("to calib"));
-  buttonA.waitForButton();
+  while(-target != currentAngle && target != currentAngle)) {
+    turnSensorUpdate();
+    currentAngle = getAngle();
 
-  calibrateSensors();
-  buttonA.waitForButton();
+    if(target != currentAngle && target < (currentAngle)) motors.setSpeeds(100, -100);
+    else if(target != currentAngle && target > (currentAngle)) motors.setSpeeds(-100, 100);
 
-  // Play music and wait for it to finish before we start driving.
-  display.clear();
-  display.print(F("Go!"));
-  buzzer.play("L16 cdegreg4");
-  while(buzzer.isPlaying());
-
-  findLine();
-  moveOntoLine(clockwise=true);
-  followLine();
-  turnSensorSetup(); 
+    display.clear();
+    display.print(currentAngle);
+  }
+  motors.setSpeeds(0,0);
 }
 
-void loop() {
-  turnSensorReset(); 
-  TrashDistance = scanTrash();
-  sortTrash();
+int getAngle() {
+  return (((int32_t)turnAngle >> 16) * 360) >> 16;
+}
+
+void showLineSensorValues(const int a, const int b, const int c) {
+  /* Reads linesensor values. Values span from 0-1000. Higher value = more color contrast. */
+  lineSensors.readCalibrated(lineSensorValues);
+  display.clear();
+  display.gotoXY(0, 0); display.println(lineSensorValues[a]);
+  display.gotoXY(4,0); display.println(lineSensorValues[b]);
+  display.gotoXY(0,1); display.println(lineSensorValues[c]);
 }
