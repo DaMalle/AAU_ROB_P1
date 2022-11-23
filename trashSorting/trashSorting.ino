@@ -1,7 +1,6 @@
 #include <Wire.h>
 #include <Zumo32U4.h>
 
-
 // For this code to work, the library proximitysensors must be edited, 
 // such the prepareRead() func does not turn emittersOff.
 
@@ -20,26 +19,20 @@ int brightnessLevels[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
 char TrashDistance;
 int currentAngle = 0;
 
-
 void rotateToTarget(int target) {  // span {-180 -- 0 -- 180}
-  while(true) {
+  int currentAngle = getAngle(); 
+
+  while(-target != currentAngle && target != currentAngle)) {
     turnSensorUpdate();
-    int currentAngle = getAngle();
-    if(target != currentAngle && target < (currentAngle)) { 
-      motors.setSpeeds(100, -100);
-      display.clear();
-      display.print((String)currentAngle);
-    }
-      else if(target != currentAngle && target > (currentAngle)) {
-      motors.setSpeeds(-100, 100);
-      display.clear();
-      display.print((String)currentAngle);
-    }
-    else if(-target == currentAngle || target == currentAngle) {
-      motors.setSpeeds(0,0);
-      break;
-    }
+    currentAngle = getAngle();
+
+    if(target != currentAngle && target < (currentAngle)) motors.setSpeeds(100, -100);
+    else if(target != currentAngle && target > (currentAngle)) motors.setSpeeds(-100, 100);
+
+    display.clear();
+    display.print(currentAngle);
   }
+  motors.setSpeeds(0,0);
 }
 
 int getAngle() {
@@ -57,24 +50,11 @@ void calibrateSensors() {
   motors.setSpeeds(0, 0);
 }
 
-void showReadings() {
-  /* Prints live measurements until button A is pressed. */
-  display.clear();
-  while(!buttonA.getSingleDebouncedPress()) {
-    lineSensors.readCalibrated(lineSensorValues);
-    display.gotoXY(0, 0);
-    display.println(lineSensorValues[0]);//Left
-    display.gotoXY(4, 0);
-    display.println(lineSensorValues[4]);//Right
-    display.gotoXY(0, 1);
-    display.println(lineSensorValues[2]);//Middle
-  }
-}
-
 void showLineSensorValues() {
   /* Reads linesensor values. Values span from 0-1000. Higher value = more color contrast. */
   lineSensors.readCalibrated(lineSensorValues);
   display.clear();
+  display.gotoXY(0, 0);
   display.println(lineSensorValues[1]);
   display.gotoXY(4,0);
   display.println(lineSensorValues[3]);
@@ -96,7 +76,6 @@ void followLine() {
     motors.setSpeeds(baseSpeed, regulatedSpeed);
     lastError = error;
   }
-
   motors.setSpeeds(0, 0);
 }
 
@@ -104,39 +83,34 @@ char scanTrash() {
   int cLeftSensor;
   int cRightSensor;
 
-  display.clear();
   lineSensors.emittersOn();
-
   while(true) {
     proxSensors.read();
     cLeftSensor = proxSensors.countsFrontWithLeftLeds();
     cRightSensor = proxSensors.countsFrontWithRightLeds();
     if(cLeftSensor == cRightSensor && cRightSensor == 20) {
-      display.gotoXY(0, 1);
-      display.println("Close");
       delay(600);
       lineSensors.emittersOff();
       return 'c';
     }
     if((cRightSensor == cLeftSensor && cRightSensor > 17 && cRightSensor < 20)) {
-      display.gotoXY(0, 1);
-      display.println("Far");
       lineSensors.emittersOff();
       return 'f';
     }
   }
 }
 
-void moveOntoLine() {
+void moveOntoLine(const bool clockwise) {
+  const int baseSpeed = 100;
   // Move a bit past line
-  motors.setSpeeds(100, 100);
+  motors.setSpeeds(baseSpeed, baseSpeed);
   delay(550);
 
-  // Turn Anticlockwise until the right sensor hits the line.
-  motors.setSpeeds(100, -100);
+  // Turn until middle sensor hits the line.
+  if (clockwise) motors.setSpeeds(baseSpeed, -baseSpeed);
+  else motors.setSpeeds(-baseSpeed, baseSpeed);
   while(lineSensorValues[2] >= 150) lineSensors.readCalibrated(lineSensorValues);
-  motors.setSpeeds(0, 0);
-      
+  motors.setSpeeds(0, 0); 
 }
 
 void findLine() {
@@ -147,7 +121,9 @@ void findLine() {
 }
 
 bool detectLine(const int lineValue) {
-  return lineSensorValues[0] < lineValue || lineSensorValues[4] < lineValue || lineSensorValues[2] < lineValue;
+  return lineSensorValues[0] < lineValue || \
+         lineSensorValues[4] < lineValue || \
+         lineSensorValues[2] < lineValue;
 }
 
 void sortTrash() {
@@ -189,7 +165,8 @@ void sortTrashClose() {
   lineSensors.readCalibrated(lineSensorValues);
   findLine();
   buzzer.play("L16 cdegreg4");
-
+  
+  // go back
   motors.setSpeeds(100, 100);
   delay(120);
   motors.setSpeeds(0, 0);
@@ -199,40 +176,29 @@ void sortTrashClose() {
   delay(900);
   motors.setSpeeds(0, 0);
   rotateToTarget(169);
+
   findLine();
-
-  motors.setSpeeds(100, 100);
-  delay(550);
-
-  // Turn clockwise until middle sensor hits the line.
-  motors.setSpeeds(-100, 100);
-  while(lineSensorValues[2] >= 150) lineSensors.readCalibrated(lineSensorValues);
-  motors.setSpeeds(0, 0);
-
+  moveOntoLine(clockwise=false);
   followLine();
-  TrashDistance='a';
+  TrashDistance = 'a';
 }
 
 void setup() {
-  //turnSensorSetup();  
   proxSensors.initFrontSensor();
   proxSensors.setBrightnessLevels(brightnessLevels, 20);
   lineSensors.initFiveSensors();
   display.clear();
-  
    
   // Play a little welcome song
   buzzer.play(">g32>>c32");
 
   // Wait for button A to be pressed and released.
-  display.clear();
   display.print(F("Press A"));
   display.gotoXY(0, 1);
   display.print(F("to calib"));
   buttonA.waitForButton();
 
   calibrateSensors();
-  showReadings();
   buttonA.waitForButton();
 
   // Play music and wait for it to finish before we start driving.
@@ -242,7 +208,7 @@ void setup() {
   while(buzzer.isPlaying());
 
   findLine();
-  moveOntoLine();
+  moveOntoLine(clockwise=true);
   followLine();
   turnSensorSetup(); 
 }
