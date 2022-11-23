@@ -13,13 +13,13 @@ Zumo32U4ProximitySensors proxSensors;
 
 unsigned int lineSensorValues[5];
 int brightnessLevels[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
-char distance;
+char TrashDistance;
 
 void calibrateSensors() {
   delay(1000);
   // Rotates in place to sweep sensors over line
-  for (uint16_t i = 0; i < 120; i++) {
-    if (i > 30 && i <= 90) motors.setSpeeds(-150, 150);
+  for(uint16_t i = 0; i < 120; i++) {
+    if(i > 30 && i <= 90) motors.setSpeeds(-150, 150);
     else motors.setSpeeds(150, -150);
     lineSensors.calibrate();
   }
@@ -69,22 +69,24 @@ void followLine() {
 }
 
 char scanTrash() {
-  while(true){
+  int cLeftSensor;
+  int cRightSensor;
+
+  display.clear();
+  lineSensors.emittersOn();
+
+  while(true) {
     proxSensors.read();
-    display.clear();
-    int cLeftSensor = proxSensors.countsFrontWithLeftLeds();
-    int cRightSensor = proxSensors.countsFrontWithRightLeds();
-    lineSensors.emittersOn();
-    display.println(cLeftSensor);
-    display.println(cRightSensor);
-    if(cLeftSensor == cRightSensor && cRightSensor == 20){
+    cLeftSensor = proxSensors.countsFrontWithLeftLeds();
+    cRightSensor = proxSensors.countsFrontWithRightLeds();
+    if(cLeftSensor == cRightSensor && cRightSensor == 20) {
       display.gotoXY(0, 1);
       display.println("Close");
       delay(600);
       lineSensors.emittersOff();
       return 'c';
     }
-    else if ((cRightSensor == cLeftSensor && cRightSensor > 17 && cRightSensor < 20)) {
+    if((cRightSensor == cLeftSensor && cRightSensor > 17 && cRightSensor < 20)) {
       display.gotoXY(0, 1);
       display.println("Far");
       lineSensors.emittersOff();
@@ -96,7 +98,7 @@ char scanTrash() {
 void moveOntoLine() {
   // Move a bit past line
   motors.setSpeeds(100, 100);
-  delay(600);
+  delay(550);
 
   // Turn Anticlockwise until the right sensor hits the line.
   motors.setSpeeds(100, -100);
@@ -106,28 +108,57 @@ void moveOntoLine() {
 }
 
 void findLine() {
-  
-  motors.setSpeeds(100, 100);
-  
-  while (!(lineSensorValues[0] < 200 || lineSensorValues[4] < 200 || lineSensorValues[2] < 200)) {
-    lineSensors.readCalibrated(lineSensorValues);
-    
-  }
+  motors.setSpeeds(300, 300);
+  lineSensors.readCalibrated(lineSensorValues);
+  while(!detectLine(100)) lineSensors.readCalibrated(lineSensorValues);
   motors.setSpeeds(0, 0);
 }
 
-void farCan(){
-    motors.setSpeeds(100,100);
-    delay(600);
-    lineSensors.readCalibrated(lineSensorValues);
-    findLine();
-    distance='a';
-    motors.setSpeeds(-100, -100);
-    delay(2900);
-    followLine();
+bool detectLine(const int lineValue) {
+  return lineSensorValues[0] < lineValue || lineSensorValues[4] < lineValue || lineSensorValues[2] < lineValue;
 }
 
-void setup(){
+void sortTrash() {
+  switch(TrashDistance) {
+    case 'f': sortTrashFar(); break;
+    case 'c': sortTrashClose(); break;
+    default: break;
+  }
+}
+
+void sortTrashFar(){
+
+  // move away from start line
+  motors.setSpeeds(300, 300);
+  delay(200);
+
+  // move forward until a new line is found
+  findLine();
+  TrashDistance='a';
+
+  // return to start line
+  motors.setSpeeds(-100, -100);
+  delay(2400);
+  followLine();
+}
+
+void sortTrashClose() {
+  motors.setSpeeds(170, -100);
+  delay(200);
+  motors.setSpeeds(120, 100);
+  delay(1000); //delay(900);
+  motors.setSpeeds(-100,100);
+  delay(1300);
+    
+  lineSensors.readCalibrated(lineSensorValues);
+  findLine();
+  motors.setSpeeds(-100, -100);
+  delay(1000);
+    
+  TrashDistance='a';
+}
+
+void setup() {
   proxSensors.initFrontSensor();
   proxSensors.setBrightnessLevels(brightnessLevels, 20);
   lineSensors.initFiveSensors();
@@ -144,8 +175,8 @@ void setup(){
   buttonA.waitForButton();
 
   calibrateSensors();
-
   showReadings();
+  buttonA.waitForButton();
 
   // Play music and wait for it to finish before we start driving.
   display.clear();
@@ -158,28 +189,7 @@ void setup(){
   followLine();
 }
 
-
-
 void loop(){ 
-  distance = scanTrash();
-  if(distance == 'f'){ // if Can is far then it will kill the Can. 
-    farCan();
-  }
-  else if(distance == 'c'){
-    motors.setSpeeds(170, -100);
-    delay(200);
-    motors.setSpeeds(120, 100);
-    delay(900);
-    motors.setSpeeds(-100,100);
-    delay(1300);
-    
-    lineSensors.readCalibrated(lineSensorValues);
-    findLine();
-    motors.setSpeeds(-100, -100);
-    delay(1000);
-    
-    distance='a';
-  }
-  
-
+  TrashDistance = scanTrash();
+  sortTrash();
 }

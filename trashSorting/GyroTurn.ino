@@ -1,0 +1,69 @@
+// Libraries:-
+#include <Zumo32U4.h>
+#include <Wire.h>
+#include <Zumo32U4Motors.h>
+
+
+// Defines:-
+Zumo32U4Motors motors;
+Zumo32U4OLED display;
+Zumo32U4ButtonA buttonA;
+Zumo32U4IMU imu;
+
+#include "TurnSensor.h"
+
+// Pin alocations:-
+
+// Constants:-
+int matargetSpeed = 400;
+int ErrorMargin = 1;
+
+// Global variables:-
+int currentAngle = 0;
+
+// Class objects:-
+
+void setup() 
+{
+  turnSensorSetup();
+  delay(500);
+  turnSensorReset();
+  setTarget(-175);
+  delay(1000);
+  
+}
+
+void loop() 
+{
+
+}
+
+int getAngle()
+{
+  return (((int32_t)turnAngle >> 16) * 360) >> 16;
+}
+void setTarget(int target)   // span {-180 -- 0 -- 180}
+{
+  while(true)
+  {
+  turnSensorUpdate();
+  int currentAngle = getAngle();
+    if(target != currentAngle && target < (currentAngle))
+    { 
+      motors.setSpeeds(200, 0);
+      display.clear();
+      display.print((String)currentAngle);
+    }
+      else if(target != currentAngle && target > (currentAngle))
+    {
+      motors.setSpeeds(-200, 0);
+      display.clear();
+      display.print((String)currentAngle);
+    }
+    else if(-target == currentAngle || target == currentAngle)
+    {
+      motors.setSpeeds(0,0);
+      break;
+    }
+  }
+}
