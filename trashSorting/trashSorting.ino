@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <Zumo32U4.h>
 
+
 // For this code to work, the library proximitysensors must be edited, 
 // such the prepareRead() func does not turn emittersOff.
 
@@ -10,10 +11,40 @@ Zumo32U4Motors motors;
 Zumo32U4ButtonA buttonA;
 Zumo32U4OLED display;
 Zumo32U4ProximitySensors proxSensors;
+Zumo32U4IMU imu;
+
+#include "TurnSensor.h"
 
 unsigned int lineSensorValues[5];
 int brightnessLevels[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
 char TrashDistance;
+int currentAngle = 0;
+
+
+void rotateToTarget(int target) {  // span {-180 -- 0 -- 180}
+  while(true) {
+    turnSensorUpdate();
+    int currentAngle = getAngle();
+    if(target != currentAngle && target < (currentAngle)) { 
+      motors.setSpeeds(100, -100);
+      display.clear();
+      display.print((String)currentAngle);
+    }
+      else if(target != currentAngle && target > (currentAngle)) {
+      motors.setSpeeds(-100, 100);
+      display.clear();
+      display.print((String)currentAngle);
+    }
+    else if(-target == currentAngle || target == currentAngle) {
+      motors.setSpeeds(0,0);
+      break;
+    }
+  }
+}
+
+int getAngle() {
+  return (((int32_t)turnAngle >> 16) * 360) >> 16;
+}
 
 void calibrateSensors() {
   delay(1000);
@@ -53,9 +84,10 @@ void showLineSensorValues() {
 
 void followLine() {
   const int setpoint = 2000, baseSpeed = 100;
-  float kp = 0.2, kd = 1;
+  float kp = 0.8, kd = 1;
   int sensorInput, error, lastError = 0, errorRate, regulatedSpeed;
   
+  lineSensors.readCalibrated(lineSensorValues);
   while(!(lineSensorValues[0] < 300 && lineSensorValues[4] < 300 && lineSensorValues[2] > 200)) {
     sensorInput = lineSensors.readLine(lineSensorValues);
     error = sensorInput - setpoint;
@@ -134,36 +166,61 @@ void sortTrashFar(){
 
   // move forward until a new line is found
   findLine();
+  buzzer.play("L16 cdegreg4");
   TrashDistance='a';
 
   // return to start line
-  motors.setSpeeds(-100, -100);
-  delay(2400);
+  motors.setSpeeds(-300, -300);
+  delay(300);
+  lineSensors.readCalibrated(lineSensorValues);
+  while(!detectLine(100)) lineSensors.readCalibrated(lineSensorValues);
+  delay(200);
   followLine();
 }
 
 void sortTrashClose() {
-  motors.setSpeeds(170, -100);
-  delay(200);
-  motors.setSpeeds(120, 100);
-  delay(1000); //delay(900);
-  motors.setSpeeds(-100,100);
-  delay(1300);
-    
+
+  // go around trash and push
+  rotateToTarget(-30);
+  motors.setSpeeds(300, 300);
+  delay(400);
+  motors.setSpeeds(0, 0);
+  rotateToTarget(90);  
   lineSensors.readCalibrated(lineSensorValues);
   findLine();
-  motors.setSpeeds(-100, -100);
-  delay(1000);
-    
+  buzzer.play("L16 cdegreg4");
+
+  motors.setSpeeds(100, 100);
+  delay(120);
+  motors.setSpeeds(0, 0);
+  turnSensorReset();
+  rotateToTarget(90);
+  motors.setSpeeds(200, 200);
+  delay(900);
+  motors.setSpeeds(0, 0);
+  rotateToTarget(169);
+  findLine();
+
+  motors.setSpeeds(100, 100);
+  delay(550);
+
+  // Turn clockwise until middle sensor hits the line.
+  motors.setSpeeds(-100, 100);
+  while(lineSensorValues[2] >= 150) lineSensors.readCalibrated(lineSensorValues);
+  motors.setSpeeds(0, 0);
+
+  followLine();
   TrashDistance='a';
 }
 
 void setup() {
+  //turnSensorSetup();  
   proxSensors.initFrontSensor();
   proxSensors.setBrightnessLevels(brightnessLevels, 20);
   lineSensors.initFiveSensors();
   display.clear();
-
+  
+   
   // Play a little welcome song
   buzzer.play(">g32>>c32");
 
@@ -187,9 +244,11 @@ void setup() {
   findLine();
   moveOntoLine();
   followLine();
+  turnSensorSetup(); 
 }
 
-void loop(){ 
+void loop() {
+  turnSensorReset(); 
   TrashDistance = scanTrash();
   sortTrash();
 }
