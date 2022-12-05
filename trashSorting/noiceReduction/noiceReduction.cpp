@@ -69,6 +69,7 @@ struct noiceReduction
         }
         else{ // if the readings are not within the errormargin.
         resetArrays();
+        array[-1]=temp;
         }
     }
   return sum/arraySize// Return average distance
