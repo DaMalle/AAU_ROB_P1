@@ -37,7 +37,7 @@ noiceReduction nR;
 Serial.println(nR.getDistance());
 }
  
- 
+
 struct noiceReduction
 {
   double getDistance(int trig, int echo) {
@@ -81,16 +81,6 @@ struct noiceReduction
     }
     
   }
-
-
-
-
-  
-
-
-
-
-
 };
 
 
