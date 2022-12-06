@@ -35,23 +35,23 @@ struct noiceReduction
     sum=firstReading;
     //now sorting based on the first reading
     for (int i = 0; i < arraySize; i++){
-        digitalWrite(trig, LOW); // clear
-        delayMicroseconds(2);
-        digitalWrite(trig, HIGH); // Trigger pulse
-        delayMicroseconds(10);
-        digitalWrite(trig, LOW); // stop pulse
-        temp = pulseIn(echo, HIGH) / 29 / 2; // Speed of sound wave divided by 2 (go and back)
-        if (array[i-1]<temp+errorMargin && array[i-1] > temp-errorMargin) 
-        // so here we only count measurements, thats 30(errorMargin) +- from the last measurement. 
-        {
-            array[i]=temp;
-            sum += array[i];
-            delay(5);//10
-        }
-        else{ // if the readings are not within the errormargin.
+      digitalWrite(trig, LOW); // clear
+      delayMicroseconds(2);
+      digitalWrite(trig, HIGH); // Trigger pulse
+      delayMicroseconds(10);
+      digitalWrite(trig, LOW); // stop pulse
+      temp = pulseIn(echo, HIGH) / 29 / 2; // Speed of sound wave divided by 2 (go and back)
+      if (array[i-1]<temp+errorMargin && array[i-1] > temp-errorMargin) 
+      // so here we only count measurements, thats 30(errorMargin) +- from the last measurement. 
+      {
+        array[i]=temp;
+        sum += array[i];
+        delay(5);//10
+      }
+      else{ // if the readings are not within the errormargin.
         resetArrays();
         array[-1]=temp;
-        }
+      }
     }
   return sum/arraySize;// Return average distance
   }
