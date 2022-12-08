@@ -37,54 +37,6 @@ double getDistance(int trig, int echo) {
   return pulseIn(echo, HIGH) / 29 / 2; // Speed of sound wave divided by 2 (go and back)
 }
 
-struct noiceReduction
-{
-  double getDistance(int trig, int echo) {
-    int errorMargin = 30;
-    int firstReading = 0;
-    double sum = 0;
-    double temp = 0;
-    //Making a firstReading
-    digitalWrite(trig, LOW); //clear
-    delayMicroseconds(2);
-    digitalWrite(trig, HIGH); //Trigger pulse
-    delayMicroseconds(10);
-    digitalWrite(trig, LOW); //stop pulse
-    firstReading = pulseIn(echo, HIGH) / 29 / 2; // Speed of sound wave divided by 2 (go and back)
-    array[-1]=firstReading;
-    sum=firstReading;
-    //now sorting based on the first reading
-    for (int i = 0; i < arraySize; i++){
-      digitalWrite(trig, LOW); // clear
-      delayMicroseconds(2);
-      digitalWrite(trig, HIGH); // Trigger pulse
-      delayMicroseconds(10);
-      digitalWrite(trig, LOW); // stop pulse
-      temp = pulseIn(echo, HIGH) / 29 / 2; // Speed of sound wave divided by 2 (go and back)
-      if (array[i-1]<temp+errorMargin && array[i-1] > temp-errorMargin) 
-      // so here we only count measurements, thats 30(errorMargin) +- from the last measurement. 
-      {//
-        array[i]=temp;
-        sum += array[i];
-        delay(5);//10
-      }
-      else{ // if the readings are not within the errormargin.
-        resetArrays();
-        array[-1]=temp;
-      }
-    }
-  return sum/arraySize;// Return average distance
-  }
-
-  void resetArrays(){
-    for (int i = 0; i < arraySize; i++) //size of divided by 8 cuz its a double
-    {
-        array[i]=0;
-    }
-    
-  }
-};
-
 void turnToAngle(int target){// span {-180 -- 0 -- 180}
   while(true)
   {
