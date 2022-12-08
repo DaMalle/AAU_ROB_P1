@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include <Zumo32U4.h>
+#include <Math.h>
 
 const int echoPinR = 21;
 const int echoPinL = 18;
@@ -15,6 +16,7 @@ Zumo32U4Buzzer buzzer;
 Zumo32U4Motors motors;
 Zumo32U4ButtonA buttonA;
 Zumo32U4IMU imu;
+Zumo32U4Encoders encoders;
 
 #include "TurnSensor.h"
 
@@ -33,16 +35,19 @@ void setup()
 
   turnSensorSetup();
   turnSensorReset();
+  encoders.init();
 }
 
 void loop() 
 {
+  GetDistanceToObject();
+  /*
   rotateToTarget(90);  
-  while(getDistance(trigPinR,echoPinR) <= 25) //Error Margin of 5 centimeters, as target is 20cm away
+  while(getDistance(trigPinR,echoPinR) <= 75) //Error Margin of 5 centimeters, as target is 20cm away
   {
     Serial.print((String)getDistance(trigPinR,echoPinR));
     //Drive Forwards Code
-    motors.setSpeeds(100, 100);
+    motors.setSpeeds(250, 100);
   }
   delay(500);
   motors.setSpeeds(0,0);
@@ -58,7 +63,7 @@ void loop()
   delay(500);
   motors.setSpeeds(0, 0);
   rotateToTarget(-90);
-
+  */
 }
 
 // Distance sensor functions
@@ -90,4 +95,35 @@ void rotateToTarget(int target) {  // span {-180 -- 0 -- 180}
 
 int getAngle() {
   return (((int32_t)turnAngle >> 16) * 360) >> 16;
+}
+
+void GetDistanceToObject()
+{
+  int StraightDistance = getDistance(trigPinF,echoPinF);
+  int LastDistance = StraightDistance;
+  int LastDistanceUse = 0;
+  int ErrorMargain = 50;
+  int NewAngle = 2;
+  int DriftCalibration = 0;
+  while(LastDistance - StraightDistance < ErrorMargain)
+  {
+    LastDistanceUse = LastDistance;
+    delay(250);
+    rotateToTarget(NewAngle);
+    LastDistance = getDistance(trigPinF,echoPinF);
+    NewAngle = NewAngle + 2;
+    DriftCalibration = DriftCalibration + 1;
+  }
+  double LengthA = sqrt(sq(LastDistanceUse) - sq(StraightDistance));
+  
+  Serial.print((String)LengthA + " " + (String)StraightDistance + " "+ (String)LastDistanceUse);
+
+  rotateToTarget(90-DriftCalibration);
+  turnSensorReset();
+
+  motors.setSpeeds(100, 79);
+  delay(125*LengthA);
+  motors.setSpeeds(0,0);
+  delay(5000);
+
 }
