@@ -63,7 +63,7 @@ struct noiceReduction
       temp = pulseIn(echo, HIGH) / 29 / 2; // Speed of sound wave divided by 2 (go and back)
       if (array[i-1]<temp+errorMargin && array[i-1] > temp-errorMargin) 
       // so here we only count measurements, thats 30(errorMargin) +- from the last measurement. 
-      {
+      {//
         array[i]=temp;
         sum += array[i];
         delay(5);//10
