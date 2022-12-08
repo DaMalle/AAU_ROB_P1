@@ -4,7 +4,7 @@
 //
 // This file should be included once in your sketch,
 // somewhere after you define objects named buttonA,
-// display, and imu.
+// //, and imu.
 
 #pragma once
 
@@ -84,8 +84,8 @@ void turnSensorUpdate()
 }
 
 /* This should be called in setup() to enable and calibrate the
-gyro.  It uses the display, yellow LED, and button A.  While the
-display shows "Gyro cal", you should be careful to hold the robot
+gyro.  It uses the //, yellow LED, and button A.  While the
+// shows "Gyro cal", you should be careful to hold the robot
 still.
 
 The digital zero-rate level of the gyro can be as high as
@@ -98,12 +98,6 @@ void turnSensorSetup()
   imu.enableDefault();
   imu.configureForTurnSensing();
 
-  display.clear();
-  display.print(F("Gyro cal"));
-
-  // Turn on the yellow LED in case the display is not available.
-  ledYellow(1);
-
   // Delay to give the user time to remove their finger.
   delay(500);
 
@@ -114,23 +108,22 @@ void turnSensorSetup()
     // Wait for new data to be available, then read it.
     while(!imu.gyroDataReady()) {}
     imu.readGyro();
-
     // Add the Z axis reading to the total.
     total += imu.g.z;
   }
-  ledYellow(0);
+ 
   gyroOffset = total / 1024;
 
-  // Display the angle (in degrees from -180 to 180) until the
+  // // the angle (in degrees from -180 to 180) until the
   // user presses A.
-  /*display.clear();
+  /*//.clear();
   turnSensorReset();
   while (!buttonA.getSingleDebouncedRelease())
   {
     turnSensorUpdate();
-    display.gotoXY(0, 0);
-    display.print((((int32_t)turnAngle >> 16) * 360) >> 16);
-    display.print(F("   "));
+    //.gotoXY(0, 0);
+    //.print((((int32_t)turnAngle >> 16) * 360) >> 16);
+    //.print(F("   "));
   }
-  display.clear(); */
+  //.clear(); */
 }
