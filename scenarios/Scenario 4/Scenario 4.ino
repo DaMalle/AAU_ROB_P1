@@ -84,7 +84,6 @@ void rotateToTarget(int target) {  // span {-180 -- 0 -- 180}
   int currentAngle = getAngle(); 
 
   while(-target != currentAngle && target != currentAngle) {
-    turnSensorUpdate();
     currentAngle = getAngle();
 
     if(target != currentAngle && target < (currentAngle)) motors.setSpeeds(100, -100);
@@ -94,6 +93,7 @@ void rotateToTarget(int target) {  // span {-180 -- 0 -- 180}
 }
 
 int getAngle() {
+  turnSensorUpdate();
   return (((int32_t)turnAngle >> 16) * 360) >> 16;
 }
 
@@ -111,19 +111,37 @@ void GetDistanceToObject()
     delay(250);
     rotateToTarget(NewAngle);
     LastDistance = getDistance(trigPinF,echoPinF);
-    NewAngle = NewAngle + 2;
+    NewAngle = NewAngle + 1;
     DriftCalibration = DriftCalibration + 1;
   }
   double LengthA = sqrt(sq(LastDistanceUse) - sq(StraightDistance));
-  
-  Serial.print((String)LengthA + " " + (String)StraightDistance + " "+ (String)LastDistanceUse);
 
   rotateToTarget(90-DriftCalibration);
   turnSensorReset();
 
+  int DelayLength = LengthA * 125;
   motors.setSpeeds(100, 79);
-  delay(125*LengthA);
+  delay(DelayLength*2);
   motors.setSpeeds(0,0);
+  while(getAngle() > -90)
+  {
+    motors.setSpeeds(100, -21);
+  }
+  while(getDistance(trigPinR,echoPinR) > 25)
+  {
+    motors.setSpeeds(100,79);
+  }
+  while(getDistance(trigPinR,echoPinR) < 25)
+  {
+    motors.setSpeeds(100,79);
+  }
+  delay(DelayLength*3);
+  while(getAngle() > -179)
+  {
+    motors.setSpeeds(100, -21);
+  }
+  motors.setSpeeds(0,0);
+
   delay(5000);
 
 }
