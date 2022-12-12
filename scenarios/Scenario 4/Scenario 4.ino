@@ -41,29 +41,6 @@ void setup()
 void loop() 
 {
   GetDistanceToObject();
-  /*
-  rotateToTarget(90);  
-  while(getDistance(trigPinR,echoPinR) <= 75) //Error Margin of 5 centimeters, as target is 20cm away
-  {
-    Serial.print((String)getDistance(trigPinR,echoPinR));
-    //Drive Forwards Code
-    motors.setSpeeds(250, 100);
-  }
-  delay(500);
-  motors.setSpeeds(0,0);
-  rotateToTarget(0);
-  //Drive forwards code
-  motors.setSpeeds(100, 100);
-  delay(1000);
-  while(getDistance(trigPinR,echoPinR) < 20)
-  {
-    //Drive forwards code
-    motors.setSpeeds(100, 100);
-  }
-  delay(500);
-  motors.setSpeeds(0, 0);
-  rotateToTarget(-90);
-  */
 }
 
 // Distance sensor functions
@@ -97,6 +74,7 @@ int getAngle() {
   return (((int32_t)turnAngle >> 16) * 360) >> 16;
 }
 
+//This is the function for avoiding objects
 void GetDistanceToObject()
 {
   int StraightDistance = getDistance(trigPinF,echoPinF);
@@ -135,13 +113,10 @@ void GetDistanceToObject()
   {
     motors.setSpeeds(100,79);
   }
-  delay(DelayLength*3);
+  delay(DelayLength*2);
   while(getAngle() > -179)
   {
     motors.setSpeeds(100, -21);
   }
   motors.setSpeeds(0,0);
-
-  delay(5000);
-
 }
