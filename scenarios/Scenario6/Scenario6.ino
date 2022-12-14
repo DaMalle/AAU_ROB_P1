@@ -75,21 +75,20 @@ int getAngle(){
 
 
 void loop() {
-bool buttonPress = buttonA.getSingleDebouncedPress();
-  if(buttonPress){
     if(getDistance(trigPinR,echoPinR)>50){
+      delay(250);
+      turnToAngle(-90);
       for(int i = 0; i<3; i++){
         buzzer.playFrequency(1200,1000,10);
         delay(2000);
       }
-      turnToAngle(-90);
       motors.setSpeeds(121, 100);
       delay(2000);
       motors.setSpeeds(0, 0);
     }
   
-    else{
+    else
+    {
       motors.setSpeeds(121,100);
     }
-  }
 }
