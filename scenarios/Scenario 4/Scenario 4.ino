@@ -77,34 +77,35 @@ int getAngle() {
 //This is the function for avoiding objects
 void GetDistanceToObject()
 {
-  int StraightDistance = getDistance(trigPinF,echoPinF);
-  int LastDistance = StraightDistance;
+  int StraightDistance = getDistance(trigPinF,echoPinF); //Distance to the object
+  int LastDistance = StraightDistance; //This is just init for LastDistance, it's set to StraightDistance for calculation purposes
   int LastDistanceUse = 0;
   int ErrorMargain = 50;
-  int NewAngle = 2;
+  int NewAngle = 1; //Information for the Gyroscope
   int DriftCalibration = 0;
-  while(LastDistance - StraightDistance < ErrorMargain)
+  while(LastDistance - StraightDistance < ErrorMargain) //When the Distance overshoots, as the object can no longer be seen, this will no longer amount to true
   {
-    LastDistanceUse = LastDistance;
+    LastDistanceUse = LastDistance; //Saving prior distance, as we would otherwise get overshot length
     delay(250);
-    rotateToTarget(NewAngle);
+    rotateToTarget(NewAngle); //Gyroscope used to turn slowly away from target
     LastDistance = getDistance(trigPinF,echoPinF);
     NewAngle = NewAngle + 1;
     DriftCalibration = DriftCalibration + 1;
   }
-  double LengthA = sqrt(sq(LastDistanceUse) - sq(StraightDistance));
+  double LengthA = sqrt(sq(LastDistanceUse) - sq(StraightDistance)); //Using Pythagoras' theorem to calculate A (Width of the object)
 
-  rotateToTarget(90-DriftCalibration);
+  rotateToTarget(90-DriftCalibration); //Makeshift gyrocalibration trying to account for drift.
   turnSensorReset();
 
-  int DelayLength = LengthA * 125;
+  int DelayLength = LengthA * 125; //A delay of 125 on speeds (100,79) is 1cm of movement from the Zumo32U4, so this delay * Width will make the zumo drive the width.
   motors.setSpeeds(100, 79);
-  delay(DelayLength*2);
+  delay(DelayLength*2); //We want our robot to be double the length of the object away, before turning
   motors.setSpeeds(0,0);
-  while(getAngle() > -90)
+  while(getAngle() > -90) //As the angle is currently 0, we use getAngle() to set a target for -90 (A turn to the right)
   {
-    motors.setSpeeds(100, -21);
+    motors.setSpeeds(100, -21); //Code to turn in a parabola towards the right
   }
+  //This is hardcoded to get the Zumo past the object
   while(getDistance(trigPinR,echoPinR) > 25)
   {
     motors.setSpeeds(100,79);
@@ -113,10 +114,12 @@ void GetDistanceToObject()
   {
     motors.setSpeeds(100,79);
   }
-  delay(DelayLength*2);
-  while(getAngle() > -179)
+
+  delay(DelayLength*2); //Drive past the object, so it does not get hit on turn in
+  while(getAngle() > -179) // New target, current angle is -90
   {
     motors.setSpeeds(100, -21);
   }
   motors.setSpeeds(0,0);
 }
+//The Zumo has now passed the object
