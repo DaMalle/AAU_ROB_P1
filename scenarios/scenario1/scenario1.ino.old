@@ -1,0 +1,40 @@
+#include<Wire.h>
+#include<Zumo32U4.h>
+#include<BasicLinearAlgebra.h>
+#include<math.h>
+
+Zumo32U4IMU imu;
+Zumo32U4Motors motors;
+
+#include"TurnSensor.h"
+
+void setup() {
+  Serial.begin(9600);
+  delay(1000);
+    turnSensorSetup();
+    turnSensorReset();
+  for(int i=0; i<=5; i++) {
+    rotateToTarget(i*6);
+  }
+}
+
+void loop() {
+
+}
+
+void rotateToTarget(const int target) {  // span {-180 -- 0 -- 180}
+    const int turnSpeed = 75;
+    int currentAngle = getGyroAngle();
+    Serial.println("current angle: " + (String)currentAngle);
+    while(abs(target) != abs(currentAngle)) {
+        currentAngle = getGyroAngle();
+        if(target != currentAngle && target < (currentAngle)) motors.setSpeeds(turnSpeed, -turnSpeed);
+        else if(target != currentAngle && target > (currentAngle)) motors.setSpeeds(-turnSpeed, turnSpeed);
+    }
+    motors.setSpeeds(0,0);
+}
+
+int32_t getGyroAngle(void) {
+    turnSensorUpdate();
+    return (((int32_t)turnAngle >> 16) * 360) >> 16;
+}

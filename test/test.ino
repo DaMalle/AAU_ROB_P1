@@ -18,7 +18,7 @@ void setup() {
 }    
  
 void loop() {
-  Serial.println(getDistance(trigPinR, echoPinR));
+  Serial.println(getDistance(trigPinF, echoPinF));
 }
 
 double getDistance(int trig, int echo) {
@@ -29,5 +29,5 @@ double getDistance(int trig, int echo) {
   digitalWrite(trig, LOW); // stop pulse
 
   // Return distance
-  return pulseIn(echo, HIGH) / 29 / 2; // Speed of sound wave divided by 2 (go and back)
+  return pulseIn(echo, HIGH) * 0.034029 / 2; // Speed of sound wave divided by 2 (go and back)
 }
