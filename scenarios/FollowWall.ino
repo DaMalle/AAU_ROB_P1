@@ -134,7 +134,7 @@ char followWall(){
 
 void loop() {
 if(status == 'f'){
-  status = followWall();
+  status = followWall();  
 }
 else if (status == 'c'){
   buzzer.playFrequency(1200,1000,15);
