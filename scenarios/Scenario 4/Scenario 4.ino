@@ -40,7 +40,7 @@ void setup()
 
 void loop() 
 {
-  GetDistanceToObject();
+  driveAroundObject();
 }
 
 // Distance sensor functions
@@ -75,7 +75,7 @@ int getAngle() {
 }
 
 //This is the function for avoiding objects
-void GetDistanceToObject()
+void driveAroundObject()
 {
   int StraightDistance = getDistance(trigPinF,echoPinF); //Distance to the object
   int LastDistance = StraightDistance; //This is just init for LastDistance, it's set to StraightDistance for calculation purposes
