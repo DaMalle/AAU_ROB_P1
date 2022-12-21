@@ -70,6 +70,10 @@ void setup(void) {
     calibrateWall(); 
 }
 
+double getRightDistance() {
+    return tof.readRangeSingleMillimeters() * 0.1;
+}
+
 void calibrateWall() {
     const int dataPointsTotal = 7;
     int angle;
@@ -82,7 +86,7 @@ void calibrateWall() {
     for(int i=0; i<dataPointsTotal; i++) {
         rotateToTarget(arr[i]);
         angle = getAngle();
-        length = tof.readRangeSingleMillimeters() * 0.1;
+        length = getRightDistance();
     
         Serial.println("angle: " + (String) angle + " Lenght: " + (String) length);
 
@@ -105,6 +109,7 @@ void calibrateWall() {
 
     Serial.println(round(atan2(y, x) * 180 / M_PI));    
     rotateToTarget(round(atan2(y, x) * 180 / M_PI));
+    turnSensorReset();
 }
 
 int32_t getAngle(void) {
@@ -154,9 +159,9 @@ double computePID(int setPoint, double input, float kp, float ki, float kd){
 
 float localError = 0;
 int output;
-char followWall(){
+void followWall(){
   while(getDistance(trigPinF,echoPinF)>15) {
-    double inputVar = cos(getAngle() * M_PI / 180) * (tof.readRangeSingleMillimeters() * 0.1);
+    double inputVar = cos(getAngle() * M_PI / 180) * getRightDistance();
     if(inputVar >= 50) {
       motors.setSpeeds(0, 0); 
       return 'c'; // 'c' for corner
@@ -170,7 +175,7 @@ char followWall(){
     }
   }
   motors.setSpeeds(0, 0);
-  return 'o'; // 'o' for obstacle
+  status = 'o'; // 'o' for obstacle
 }
 
 void corner(){
@@ -188,20 +193,44 @@ void corner(){
     turnSensorReset();
     cumError=0;
 
-    
     status = 'f';
   }
 }
 
-void loop() {
-  followWall();
-  switch (status){
-    case 'f': status = followWall(); break;
-    case 'c': corner(); break;
-    case 'o':
+void avoidObstacle() {
+    int errorMargin = 2;
+
     buzzer.playFrequency(1200,1000,15);
     motors.setSpeeds(0, 0);
-    status = 'A';
+    calibrateWall();
+    rotateToTarget(90);
+    while(getRightDistance() < 40) motors.setSpeeds(100, 100);
+    while(getAngle() > 3) motors.setSpeeds(100, 50);
+    
+    int lastDistance = getRightDistance();
+    int currentDistance = getRightDistance();
+    while(currentDistance < (lastDistance+errorMargin)) {
+        lastDistance = currentDistance;
+        currentDistance = getRightDistance();
+        motors.setSpeeds(100, 79);
+    }
+
+    while(getAngle() > -90) motors.setSpeeds(100, 50);
+    while(getDistance(trigPinF,echoPinF) < 20) {
+        motors.setSpeeds(100, 79);
+    }
+    motors.setSpeeds(0, 0);
+    rotateToTarget(0);
+    calibrateWall();
+
+    status = 'e';
+}
+
+void loop() {
+  switch (status){
+    case 'f': followWall(); break;
+    case 'c': corner(); break;
+    case 'o': avoidObstacle(); break;
     break;
   }
   //motors.setSpeeds(208, 200);
